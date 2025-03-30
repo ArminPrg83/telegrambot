@@ -8,20 +8,27 @@ from telegram.ext import (
     ContextTypes
 )
 
-# توکن ربات از متغیر محیطی
-TOKEN = os.environ["BOT_TOKEN"]
+# دریافت امن توکن از محیط
+TOKEN = os.environ.get("BOT_TOKEN")
 
-# فقط این لینک مجاز است
+# تست دستی توکن در لاگ‌ها (برای دیباگ)
+print("توکن دریافتی:", TOKEN)
+
+# اگر توکن وجود نداشت → خطا بده
+if not TOKEN:
+    raise ValueError("❌ متغیر محیطی BOT_TOKEN تعریف نشده. لطفاً در Railway → Variables مقدارش رو وارد کن.")
+
+# لینک دعوت مجاز
 VALID_INVITE_LINK = "https://t.me/+1DS_plQTweM3YmY0"
 
-# لیست یوزرنیم ادمین‌ها (بدون @)
+# لیست ادمین‌ها (یوزرنیم بدون @)
 ADMIN_USERNAMES = [
     "armin_mahn",
     "SoleimaniS",
     "NavidSatt"
 ]
 
-# ⬇️ /start → فقط برای ادمین‌ها
+# خوش‌آمد به ادمین در PV
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.effective_user.username
     full_name = update.effective_user.full_name
@@ -34,10 +41,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⛔️ شما ادمین این ربات نیستید!")
 
-# ⬇️ وقتی کسی عضو گروه می‌شه
+# بررسی عضوهای جدید در گروه
 async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for member in update.message.new_chat_members:
-        # اگه خود ربات وارد گروه شده → فقط سلام بده
+        # اگر خود ربات وارد شد
         if member.id == context.bot.id:
             await update.message.reply_text("سلام 👋")
             return
