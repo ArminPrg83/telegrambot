@@ -1,4 +1,3 @@
-import os
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -8,12 +7,12 @@ from telegram.ext import (
     ContextTypes
 )
 
-TOKEN = "7294768971:AAERr79xQZwCkXCOTZ9bCMyQ27IbKwXx8jc"
-VALID_INVITE_LINK = "https://t.me/+1DS_plQTweM3YmY0"
+TOKEN = "7979279592:AAHt2FMV1Uh0sp12VVjcOIvLGUtLSEx2Ev0"
 VALID_GROUP_ID = -1002619416296
+VALID_INVITE_LINK = "https://t.me/+1DS_plQTweM3YmY0"
 ADMIN_USERNAMES = ["armin_mahn", "SoleimaniS", "NavidSatt"]
 
-# خوش‌آمد به ادمین در PV
+# شروع توسط ادمین
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.effective_user.username
     full_name = update.effective_user.full_name
@@ -24,10 +23,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⛔️ شما ادمین این ربات نیستید!")
 
-# بررسی عضوهای جدید فقط در گروه اصلی
+# واکنش به عضو جدید
 async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id != VALID_GROUP_ID:
-        return  # گروه نادرسته → کاری نکن
+        return  # فقط در گروه اصلی فعال باشه
 
     for member in update.message.new_chat_members:
         if member.id == context.bot.id:
@@ -36,7 +35,6 @@ async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         invite_link = update.message.invite_link
 
-        # اگر لینک نبود یا لینک اشتباه بود → حذف
         if invite_link is None or invite_link.invite_link != VALID_INVITE_LINK:
             await context.bot.ban_chat_member(chat_id=update.effective_chat.id, user_id=member.id)
             await context.bot.unban_chat_member(chat_id=update.effective_chat.id, user_id=member.id)
@@ -46,7 +44,7 @@ async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f"• نام: @{member.username or member.first_name}\n"
                 f"• آی‌دی: `{member.id}`\n"
                 f"• گروه: {update.effective_chat.title}\n"
-                f"• وضعیت: بدون لینک دعوت وارد شد و حذف شد ✅"
+                f"• وضعیت: بدون لینک دعوت معتبر وارد شد و حذف شد ✅"
             )
 
             for username in ADMIN_USERNAMES:
@@ -56,10 +54,10 @@ async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 except Exception as e:
                     print(f"❗ خطا در ارسال گزارش به {username}: {e}")
 
-# اجرا
+# ساخت اپ
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start_command))
 app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, handle_new_members))
 
-print("🤖 ربات فعال شد فقط برای گروه اصلی ✅")
+print("🤖 ربات فعال شد و آماده خدمت در گروه اصلیه...")
 app.run_polling()
