@@ -9,7 +9,7 @@ from telegram.ext import (
 )
 
 # دریافت امن توکن از محیط
-TOKEN = os.environ.get("BOT_TOKEN")
+TOKEN = "7294768971:AAERr79xQZwCkXCOTZ9bCMyQ27IbKwXx8jc"
 
 # تست دستی توکن در لاگ‌ها (برای دیباگ)
 print("توکن دریافتی:", TOKEN)
