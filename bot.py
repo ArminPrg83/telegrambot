@@ -8,19 +8,12 @@ from telegram.ext import (
     ContextTypes
 )
 
-# دریافت امن توکن از محیط
 TOKEN = "7294768971:AAERr79xQZwCkXCOTZ9bCMyQ27IbKwXx8jc"
-
-# تست دستی توکن در لاگ‌ها (برای دیباگ)
-print("توکن دریافتی:", TOKEN)
-
-if not TOKEN:
-    raise ValueError("❌ توکن تعریف نشده.")
-
 VALID_INVITE_LINK = "https://t.me/+1DS_plQTweM3YmY0"
+VALID_GROUP_ID = -1002619416296
 ADMIN_USERNAMES = ["armin_mahn", "SoleimaniS", "NavidSatt"]
 
-# خوش‌آمد به ادمین
+# خوش‌آمد به ادمین در PV
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     username = update.effective_user.username
     full_name = update.effective_user.full_name
@@ -31,18 +24,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⛔️ شما ادمین این ربات نیستید!")
 
-# هندلر گرفتن chat_id گروه
-async def show_group_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.effective_chat
-    await update.message.reply_text(f"Chat ID: `{chat.id}`", parse_mode="Markdown")
-
-# هندلر اعضای جدید
+# بررسی عضوهای جدید فقط در گروه اصلی
 async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_chat.id != VALID_GROUP_ID:
+        return  # گروه نادرسته → کاری نکن
+
     for member in update.message.new_chat_members:
         if member.id == context.bot.id:
             await update.message.reply_text("سلام 👋")
             return
+
         invite_link = update.message.invite_link
+
+        # اگر لینک نبود یا لینک اشتباه بود → حذف
         if invite_link is None or invite_link.invite_link != VALID_INVITE_LINK:
             await context.bot.ban_chat_member(chat_id=update.effective_chat.id, user_id=member.id)
             await context.bot.unban_chat_member(chat_id=update.effective_chat.id, user_id=member.id)
@@ -62,12 +56,10 @@ async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 except Exception as e:
                     print(f"❗ خطا در ارسال گزارش به {username}: {e}")
 
-# ساخت اپ و اضافه کردن هندلرها
+# اجرا
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start_command))
-app.add_handler(MessageHandler(filters.ALL, show_group_id))
 app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, handle_new_members))
 
-print("debug")
-print("🤖 ربات در حال اجراست...")
+print("🤖 ربات فعال شد فقط برای گروه اصلی ✅")
 app.run_polling()
