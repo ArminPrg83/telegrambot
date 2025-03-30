@@ -73,6 +73,11 @@ async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE)
                     print(f"❗ خطا در ارسال گزارش به {username}: {e}")
 
 # راه‌اندازی ربات
+async def show_group_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat = update.effective_chat
+    await update.message.reply_text(f"Chat ID: `{chat.id}`", parse_mode="Markdown")
+
+app.add_handler(MessageHandler(filters.ALL, show_group_id))
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start_command))
 app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, handle_new_members))
