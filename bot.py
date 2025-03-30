@@ -82,5 +82,7 @@ app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start_command))
 app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, handle_new_members))
 
+print("debug")
+
 print("🤖 ربات در حال اجراست...")
 app.run_polling()
