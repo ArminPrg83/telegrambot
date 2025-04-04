@@ -1,90 +1,83 @@
-from telegram import Update
+import os
+from telegram import Update, ChatJoinRequest
+from telegram.helpers import escape_markdown
 from telegram.ext import (
     ApplicationBuilder,
-    MessageHandler,
     CommandHandler,
-    filters,
-    ContextTypes
+    MessageHandler,
+    ChatJoinRequestHandler,
+    ContextTypes,
+    filters
 )
 
-TOKEN = "7979279592:AAHt2FMV1Uh0sp12VVjcOIvLGUtLSEx2Ev0"
-VALID_GROUP_ID = -1002619416296
-VALID_INVITE_LINK = "https://t.me/+1DS_plQTweM3YmY0"
-ADMIN_USERNAMES = ["armin_mahn", "SoleimaniS", "NavidSatt"]
+# === تنظیمات اصلی ===
 
-# خوش‌آمد به ادمین
+TOKEN = "7979279592:AAFhvKPjrrDoR0WaRpFQGjNE3PB1NBIWxYg"  # 🔐 توکن ربات
+VALID_GROUP_ID = -1001698161225  # 🏠 آیدی عددی گروه اصلی
+
+ADMIN_IDS = [5420061063, 287579078]  # 🧑‍💻 آیدی عددی ادمین‌هایی که پیام خصوصی بگیرن
+
+# 🟢 کاربران تأیید شده از طریق Join Request
+approved_users = set()
+
+# === هندلر /start برای تست دستی در پیوی ===
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    username = update.effective_user.username
-    full_name = update.effective_user.full_name
-    if username in ADMIN_USERNAMES:
-        await update.message.reply_text(
-            f"سلام {full_name}! 👋\nبه ربات امنیتی ما خوش اومدی 🤖🔥"
-        )
-    else:
-        await update.message.reply_text("⛔️ شما ادمین این ربات نیستید!")
+    await update.message.reply_text("✅ ربات امنیتی فعال است.")
+    await update.message.reply_text(f"Chat ID: `{update.effective_chat.id}`", parse_mode="MarkdownV2")
 
-# بررسی اعضای جدید
+# ✅ اگر کاربر با join request وارد شد → ثبتش کن
+async def handle_join_request(update: ChatJoinRequest, context: ContextTypes.DEFAULT_TYPE):
+    user = update.chat_join_request.from_user
+    approved_users.add(user.id)
+    print(f"📥 کاربر مجاز شد از طریق join-request: {user.id}")
+
+# 🧹 اگر کاربر مجاز نیست → حذفش کن
 async def handle_new_members(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.id != VALID_GROUP_ID:
-        print("📭 عضو جدید توی گروه اشتباه → نادیده گرفته شد")
         return
 
     for member in update.message.new_chat_members:
         if member.id == context.bot.id:
-            await update.message.reply_text("سلام 👋")
+            await update.message.reply_text("سلام! 👋")
             return
 
-        # بررسی invite_link
-        invite_link = update.message.invite_link
-        invite_link_str = invite_link.invite_link if invite_link else "None"
+        user_id = str(member.id)
+        full_name = member.full_name
+        username_raw = f"@{member.username}" if member.username else full_name
+        username = escape_markdown(username_raw, version=2)
 
-        print("👤 عضو جدید:", member.username or member.first_name)
-        print("📎 invite_link:", invite_link_str)
+        print(f"\n👤 کاربر وارد شد: {username_raw} ({user_id})")
 
-        # ارسال گزارش به گروه (برای تست)
-        await context.bot.send_message(
-            chat_id=VALID_GROUP_ID,
-            text=(
-                f"👤 عضو جدید: @{member.username or member.first_name}\n"
-                f"🆔 ID: {member.id}\n"
-                f"📎 Link: {invite_link_str}"
-            )
-        )
+        if member.id not in approved_users:
+            print("❌ کاربر در لیست مجاز نیست → تلاش برای حذف...")
 
-        # اگر invite_link نداشت یا اشتباه بود → حذفش کن
-        if invite_link is None or invite_link.invite_link != VALID_INVITE_LINK:
             try:
-                await context.bot.ban_chat_member(chat_id=VALID_GROUP_ID, user_id=member.id)
+                result = await context.bot.ban_chat_member(chat_id=VALID_GROUP_ID, user_id=member.id)
                 await context.bot.unban_chat_member(chat_id=VALID_GROUP_ID, user_id=member.id)
+                print(f"✅ حذف با موفقیت انجام شد (ریسپانس تلگرام: {result})")
 
                 report = (
-                    f"🚨 حذف کاربر غیرمجاز:\n"
-                    f"• نام: @{member.username or member.first_name}\n"
-                    f"• آی‌دی: `{member.id}`\n"
-                    f"• لینک دعوت: {invite_link_str}\n"
-                    f"• دلیل: لینک نداشت یا اشتباه بود"
+                    "🚨 *کاربر غیرمجاز حذف شد:*\n\n"
+                    f"👤 نام: {username}\n"
+                    f"🆔 آی‌دی: `{user_id}`"
                 )
-
-                print("✅ حذف شد:", member.id)
-
-                for username in ADMIN_USERNAMES:
+                for admin_id in ADMIN_IDS:
                     try:
-                        chat = await context.bot.get_chat(username)
-                        await context.bot.send_message(chat_id=chat.id, text=report, parse_mode="Markdown")
+                        await context.bot.send_message(chat_id=admin_id, text=report, parse_mode="MarkdownV2")
                     except Exception as e:
-                        print(f"❗ خطا در ارسال گزارش به {username}: {e}")
+                        print(f"❌ خطا در ارسال گزارش به {admin_id}: {e}")
 
             except Exception as e:
-                err = f"❌ خطا در حذف کاربر @{member.username or member.first_name}:\n{e}"
-                await context.bot.send_message(chat_id=VALID_GROUP_ID, text=err)
-                print(err)
+                print(f"⛔️ خطا در عملیات ban/unban → {e}")
         else:
-            print("🟢 عضو مجاز بود → حذف نشد")
+            print("✅ کاربر در لیست مجاز بود. باقی می‌مونه.")
+            approved_users.remove(member.id)
 
-# اجرای ربات
+# === اجرای ربات ===
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start_command))
+app.add_handler(ChatJoinRequestHandler(handle_join_request))
 app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, handle_new_members))
 
-print("🤖 ربات دیباگ‌شده با موفقیت اجرا شد!")
+print("🤖 ربات امنیتی پیشرفته در حال اجراست...")
 app.run_polling()
